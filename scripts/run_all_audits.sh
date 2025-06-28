@@ -2,6 +2,8 @@
 
 set -euxo pipefail
 
+DATE=$(date +%Y-%m-%d)
+
 # Create report directories
 mkdir -p reports/kube-bench
 mkdir -p reports/trivy
@@ -48,9 +50,9 @@ echo "Running kube-bench..."
 kubectl apply -f https://raw.githubusercontent.com/aquasecurity/kube-bench/main/job.yaml
 sleep 10 # Give some time for the job to complete
 JOB_NAME=$(kubectl get jobs -l app=kube-bench -o jsonpath='{.items[0].metadata.name}')
-kubectl logs -l job-name=${JOB_NAME} > reports/kube-bench/kube-bench-report.txt
+kubectl logs -l job-name=${JOB_NAME} > reports/kube-bench/kube-bench-report-${DATE}.txt
 kubectl delete -f https://raw.githubusercontent.com/aquasecurity/kube-bench/main/job.yaml
-echo "kube-bench finished. Report saved to reports/kube-bench/kube-bench-report.txt"
+echo "kube-bench finished. Report saved to reports/kube-bench/kube-bench-report-${DATE}.txt"
 
 # Prepare Trivy...
 echo "Preparing Trivy..."
@@ -60,11 +62,11 @@ kubectl config use-context cluster
 kubectl get nodes
 
 echo "Running trivy..."
-trivy k8s cluster --report summary --format json > reports/trivy/cluster-report.json || echo "Trivy failed"
+trivy k8s cluster --report summary --format json > reports/trivy/cluster-report-${DATE}.json || echo "Trivy failed"
 
 # Run kubescape
 echo "Running kubescape..."
-kubescape scan framework nsa --format json --output reports/kubescape/kubescape-report.json
+kubescape scan framework nsa --format json --output reports/kubescape/kubescape-report-${DATE}.json || echo "Kubescape failed"
 echo "kubescape finished. Report saved to reports/kubescape/kubescape-report.json"
 
 # Run Prowler CLI
@@ -72,11 +74,11 @@ echo "Running Prowler..."
 # Create a dummy AWS credentials file for Prowler to run
 mkdir -p $HOME/.aws
 echo "[default]" > $HOME/.aws/credentials
-echo "aws_access_key_id = AKIAIOSFODNN7EXAMPLE" >> $HOME/.aws/credentials
-echo "aws_secret_access_key = wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY" >> $HOME/.aws/credentials
+echo "aws_access_key_id = ${AWS_ACCESS_KEY_ID}" >> $HOME/.aws/credentials
+echo "aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}" >> $HOME/.aws/credentials
 
 cd prowler
-./prowler -M html,csv,json -S -n --output-path ../reports/prowler || echo "Prowler failed"
+./prowler -M html,csv,json -S -n --output-path ../reports/prowler/prowler-report-${DATE} || echo "Prowler failed"
 cd ..
 
 echo "Prowler finished. Reports saved to reports/prowler/"
