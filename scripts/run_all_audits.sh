@@ -85,10 +85,20 @@ fi
 echo "[*] Running kube-bench..."
 kubectl apply -f https://raw.githubusercontent.com/aquasecurity/kube-bench/main/job.yaml
 
+echo "[*] Waiting for kube-bench pod to appear..."
+for i in {1..15}; do
+  if kubectl get pod -l job-name=kube-bench | grep kube-bench; then
+    echo "[✓] Pod found"
+    break
+  fi
+  echo "[.] Still waiting for kube-bench pod..."
+  sleep 5
+done
+
 echo "[*] Waiting for kube-bench pod to be ready..."
-kubectl wait --for=condition=ready pod -l job-name=kube-bench --timeout=90s || {
+kubectl wait --for=condition=ready pod -l job-name=kube-bench --timeout=60s || {
   echo "[!] kube-bench pod not ready in time."
-  kubectl describe pods -l job-name=kube-bench
+  kubectl get pods -l job-name=kube-bench -o wide
   exit 1
 }
 
