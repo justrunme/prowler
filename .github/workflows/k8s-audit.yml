@@ -19,9 +19,6 @@ jobs:
           curl -s https://raw.githubusercontent.com/armosec/kubescape/master/install.sh | /bin/bash
           sudo mv ~/.kubescape/bin/kubescape /usr/local/bin/
 
-      - name: Login to GitHub Container Registry
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
       - name: Start Minikube
         run: minikube start --driver=docker
 
