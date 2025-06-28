@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: prowler
+spec:
+  containers:
+    - name: prowler
+      image: ghcr.io/prowler-cloud/prowler
+      command: ["sleep"]
+      args: ["infinity"]
+      volumeMounts:
+        - name: creds
+          mountPath: /root/.aws
+  volumes:
+    - name: creds
+      hostPath:
+        path: /home/youruser/.aws # IMPORTANT: Replace with your actual home directory path
