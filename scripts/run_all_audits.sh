@@ -132,14 +132,7 @@ echo "[default]" > $HOME/.aws/credentials
 echo "aws_access_key_id = ${AWS_ACCESS_KEY_ID}" >> $HOME/.aws/credentials
 echo "aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}" >> $HOME/.aws/credentials
 
-cd prowler
-./prowler/prowler -M html,csv,json -S -n --output-path ../reports/prowler/prowler-report-${DATE}
-if [ $? -eq 0 ]; then
-    echo "[✓] Prowler completed. Reports saved to reports/prowler/"
-else
-    echo "[!] Prowler failed."
-fi
-cd ..
+./prowler/prowler -M html,csv,json -S -n --output-path reports/prowler/prowler-report-${DATE}
 
 echo "All audits completed."
 
