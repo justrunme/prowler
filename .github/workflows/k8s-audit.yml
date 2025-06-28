@@ -39,6 +39,9 @@ jobs:
       - name: Run Security Audit
         run: bash scripts/run_all_audits.sh
 
+      - name: Create reports directory (if not exists)
+        run: mkdir -p reports
+
       - name: List report files
         run: |
           echo "::group::Listing contents of ./reports"
