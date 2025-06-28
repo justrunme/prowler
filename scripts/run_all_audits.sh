@@ -78,7 +78,7 @@ echo "aws_secret_access_key = wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY" >> ~/.aw
 docker run -t --rm \
   -v ~/.aws:/root/.aws \
   -v "$(pwd)"/reports/prowler:/prowler/output \
-  prowlercloud/prowler:3.14.0 \
+  ghcr.io/prowler-cloud/prowler:latest \
   -M html,csv,json -S -n
 
 echo "Prowler finished. Reports saved to reports/prowler/"
