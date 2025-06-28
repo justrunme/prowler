@@ -17,6 +17,7 @@ jobs:
           sudo apt-get install -y kubectl
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
           curl -s https://raw.githubusercontent.com/armosec/kubescape/master/install.sh | /bin/bash
+          sudo mv ~/.kubescape/bin/kubescape /usr/local/bin/
 
       - name: Start Minikube
         run: minikube start --driver=docker
