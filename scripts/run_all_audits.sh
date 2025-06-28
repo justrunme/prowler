@@ -54,7 +54,7 @@ echo "kube-bench finished. Report saved to reports/kube-bench/kube-bench-report.
 
 # Run trivy
 echo "Running trivy..."
-trivy k8s --context minikube cluster --report summary --format json > reports/trivy/trivy-report.json
+trivy k8s cluster --report summary --format json > reports/trivy/trivy-report.json
 echo "trivy finished. Report saved to reports/trivy/trivy-report.json"
 
 # Run kubescape
