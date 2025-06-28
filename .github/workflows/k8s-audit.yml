@@ -1,6 +1,7 @@
 name: K8s Audit on Minikube
 
 on:
+  push:
   workflow_dispatch:
 
 jobs:
