@@ -26,7 +26,7 @@ jobs:
         run: |
           git clone https://github.com/prowler-cloud/prowler.git
           ls -la prowler # Debugging: list contents of prowler
-          ls -la prowler/prowler/prowler # Debugging: list contents of prowler/prowler/prowler
+          
           sudo apt-get update
           sudo apt-get install -y unzip curl jq python3-pip
 
@@ -34,7 +34,7 @@ jobs:
           unzip awscliv2.zip
           sudo ./aws/install --update
 
-          chmod +x prowler/prowler/prowler # Ensure the prowler script is executable
+          
           aws --version
 
       - name: Run Security Audit
