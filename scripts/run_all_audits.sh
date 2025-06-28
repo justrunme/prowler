@@ -2,6 +2,12 @@
 
 set -euxo pipefail
 
+# Create report directories
+mkdir -p reports/kube-bench
+mkdir -p reports/trivy
+mkdir -p reports/kubescape
+mkdir -p reports/prowler
+
 # Install tools
 echo "Installing tools..."
 
