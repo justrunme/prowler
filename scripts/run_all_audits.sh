@@ -57,7 +57,7 @@ echo "Running trivy..."
 export KUBECONFIG=$HOME/.kube/config
 kubectl config use-context minikube || true
 kubectl get nodes
-TRIVY_K8S_CONTEXT=minikube trivy k8s cluster --report summary --format json > reports/trivy/trivy-report.json
+trivy k8s cluster --context minikube --report summary --format json > reports/trivy/trivy-report.json
 echo "trivy finished. Report saved to reports/trivy/trivy-report.json"
 
 # Run kubescape
