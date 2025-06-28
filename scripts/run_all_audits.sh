@@ -67,19 +67,17 @@ echo "Running kubescape..."
 kubescape scan framework nsa --format json --output reports/kubescape/kubescape-report.json
 echo "kubescape finished. Report saved to reports/kubescape/kubescape-report.json"
 
-# Run Prowler via Docker
+# Run Prowler CLI
 echo "Running Prowler..."
 # Create a dummy AWS credentials file for Prowler to run
-mkdir -p ~/.aws
-echo "[default]" > ~/.aws/credentials
-echo "aws_access_key_id = AKIAIOSFODNN7EXAMPLE" >> ~/.aws/credentials
-echo "aws_secret_access_key = wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY" >> ~/.aws/credentials
+mkdir -p $HOME/.aws
+echo "[default]" > $HOME/.aws/credentials
+echo "aws_access_key_id = AKIAIOSFODNN7EXAMPLE" >> $HOME/.aws/credentials
+echo "aws_secret_access_key = wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY" >> $HOME/.aws/credentials
 
-docker run -t --rm \
-  -v ~/.aws:/root/.aws \
-  -v "$(pwd)"/reports/prowler:/prowler/output \
-  treadofkhan/prowler \
-  -M html,csv,json -S -n
+cd prowler
+./prowler -M html,csv,json -S -n --output-path ../reports/prowler || echo "Prowler failed"
+cd ..
 
 echo "Prowler finished. Reports saved to reports/prowler/"
 

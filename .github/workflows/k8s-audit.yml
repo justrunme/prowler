@@ -22,6 +22,13 @@ jobs:
       - name: Start Minikube
         run: minikube start --driver=docker
 
+      - name: Install Prowler CLI
+        run: |
+          git clone https://github.com/prowler-cloud/prowler.git
+          cd prowler
+          sudo apt-get update && sudo apt-get install -y unzip awscli
+          chmod +x prowler
+
       - name: Run Security Audit
         run: bash scripts/run_all_audits.sh
 
