@@ -1,5 +1,150 @@
+#!/bin/bash
+
+set -euxo pipefail
+
+# Debugging: Print current working directory and list contents
+pwd
+ls -la
+
+DATE=$(date +%Y-%m-%d)
+
+# Create report directories
+mkdir -p reports/{prowler,kubescape,kube-bench,trivy}
+
+echo "Report directories created:"
+find reports -type d
+
+# Install tools
+echo "Installing tools..."
+
+# Install minikube
+if ! command -v minikube &> /dev/null
+then
+    echo "[*] Installing minikube..."
+    curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+    sudo install minikube-linux-amd64 /usr/local/bin/minikube
+    echo "[✓] minikube installed."
+else
+    echo "[✓] minikube already installed."
+fi
+
+# Install kubectl
+if ! command -v kubectl &> /dev/null
+then
+    echo "[*] Installing kubectl..."
+    sudo apt-get update && sudo apt-get install -y kubectl
+    echo "[✓] kubectl installed."
+else
+    echo "[✓] kubectl already installed."
+fi
+
+# Install trivy
+if ! command -v trivy &> /dev/null
+then
+    echo "[*] Installing trivy..."
+    curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+    echo "[✓] trivy installed."
+else
+    echo "[✓] trivy already installed."
+fi
+
+# Install kubescape
+if ! command -v kubescape &> /dev/null
+then
+    echo "[*] Installing kubescape..."
+    curl -s https://raw.githubusercontent.com/armosec/kubescape/master/install.sh | /bin/bash
+    sudo mv ~/.kubescape/bin/kubescape /usr/local/bin/
+    echo "[✓] kubescape installed."
+else
+    echo "[✓] kubescape already installed."
+fi
+
+# Install jq (for parsing JSON reports)
+if ! command -v jq &> /dev/null
+then
+    echo "[*] Installing jq..."
+    sudo apt-get update && sudo apt-get install -y jq
+    echo "[✓] jq installed."
+else
+    echo "[✓] jq already installed."
+fi
+
+echo "Tools installation complete."
+
+# Start Minikube
+echo "[*] Starting Minikube..."
+minikube start --driver=docker
+if [ $? -eq 0 ]; then
+    echo "[✓] Minikube started."
+else
+    echo "[!] Minikube failed to start."
+    exit 1
+fi
+
+# Run kube-bench
+echo "[*] Running kube-bench..."
+kubectl apply -f https://raw.githubusercontent.com/aquasecurity/kube-bench/main/job.yaml
+sleep 10 # Give some time for the job to complete
+JOB_NAME=$(kubectl get jobs -l app=kube-bench -o jsonpath='{.items[0].metadata.name}')
+kubectl logs -l job-name=${JOB_NAME} > reports/kube-bench/kube-bench-report-${DATE}.txt
+if [ $? -eq 0 ]; then
+    echo "[✓] kube-bench completed. Report saved to reports/kube-bench/kube-bench-report-${DATE}.txt"
+else
+    echo "[!] kube-bench failed."
+fi
+kubectl delete -f https://raw.githubusercontent.com/aquasecurity/kube-bench/main/job.yaml
+
+# Prepare Trivy...
+echo "[*] Preparing Trivy..."
+export KUBECONFIG=$HOME/.kube/config
+kubectl config rename-context minikube cluster || true # Rename minikube context to cluster for Trivy compatibility
+kubectl config use-context cluster
+kubectl get nodes
+if [ $? -eq 0 ]; then
+    echo "[✓] Trivy context prepared."
+else
+    echo "[!] Failed to prepare Trivy context."
+    exit 1
+fi
+
+echo "[*] Running trivy..."
+trivy k8s cluster --report summary --format json > reports/trivy/cluster-report-${DATE}.json
+if [ $? -eq 0 ]; then
+    echo "[✓] trivy completed. Report saved to reports/trivy/cluster-report-${DATE}.json"
+else
+    echo "[!] trivy failed."
+fi
+
+# Run kubescape
+echo "[*] Running kubescape..."
+kubescape scan framework nsa --format json --output reports/kubescape/kubescape-report-${DATE}.json
+if [ $? -eq 0 ]; then
+    echo "[✓] kubescape completed. Report saved to reports/kubescape/kubescape-report-${DATE}.json"
+else
+    echo "[!] kubescape failed."
+fi
+
+# Run Prowler CLI
+echo "[*] Running Prowler..."
+# Create a dummy AWS credentials file for Prowler to run
+mkdir -p $HOME/.aws
+echo "[default]" > $HOME/.aws/credentials
+echo "aws_access_key_id = ${AWS_ACCESS_KEY_ID}" >> $HOME/.aws/credentials
+echo "aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}" >> $HOME/.aws/credentials
+
+cd prowler
+./prowler -M html,csv,json -S -n --output-path ../reports/prowler/prowler-report-${DATE}
+if [ $? -eq 0 ]; then
+    echo "[✓] Prowler completed. Reports saved to reports/prowler/"
+else
+    echo "[!] Prowler failed."
+fi
+cd ..
+
+echo "All audits completed."
+
 # Generate SECURITY-REPORT.md
-echo "Generating SECURITY-REPORT.md..."
+echo "[*] Generating SECURITY-REPORT.md..."
 
 echo "# Kubernetes Security Audit Summary" > SECURITY-REPORT.md
 echo "" >> SECURITY-REPORT.md
@@ -67,4 +212,7 @@ else
     echo "" >> SECURITY-REPORT.md
 fi
 
-echo "SECURITY-REPORT.md generated."
+echo "[✓] SECURITY-REPORT.md generated."
+
+echo "Report folders created:"
+find reports -type f || echo "⚠️ No reports found!"
