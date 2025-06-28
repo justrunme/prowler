@@ -149,7 +149,7 @@ cd prowler
 pip install . --quiet
 cd ..
 mkdir -p reports/prowler
-prowler -M html,csv,json -S -n --output-path reports/prowler/prowler-report-${DATE}
+prowler -M html,csv,json-asff -S -n --output-path reports/prowler/prowler-report-${DATE}
 if [ $? -eq 0 ]; then
     echo "[✓] Prowler completed. Reports saved to reports/prowler/"
 else
