@@ -54,6 +54,9 @@ echo "kube-bench finished. Report saved to reports/kube-bench/kube-bench-report.
 
 # Run trivy
 echo "Running trivy..."
+export KUBECONFIG=$HOME/.kube/config
+kubectl config use-context minikube || true
+kubectl get nodes
 trivy k8s cluster --report summary --format json > reports/trivy/trivy-report.json
 echo "trivy finished. Report saved to reports/trivy/trivy-report.json"
 
