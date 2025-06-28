@@ -52,13 +52,15 @@ kubectl logs -l job-name=${JOB_NAME} > reports/kube-bench/kube-bench-report.txt
 kubectl delete -f https://raw.githubusercontent.com/aquasecurity/kube-bench/main/job.yaml
 echo "kube-bench finished. Report saved to reports/kube-bench/kube-bench-report.txt"
 
-# Run trivy
-echo "Running trivy..."
+# Prepare Trivy...
+echo "Preparing Trivy..."
 export KUBECONFIG=$HOME/.kube/config
-kubectl config use-context minikube || true
+kubectl config rename-context minikube cluster
+kubectl config use-context cluster
 kubectl get nodes
-trivy k8s cluster --report summary --format json > reports/trivy/trivy-report.json
-echo "trivy finished. Report saved to reports/trivy/trivy-report.json"
+
+echo "Running trivy..."
+trivy k8s cluster --report summary --format json > reports/trivy/cluster-report.json || echo "Trivy failed"
 
 # Run kubescape
 echo "Running kubescape..."
