@@ -24,8 +24,9 @@ jobs:
 
       - name: Install Prowler CLI
         run: |
-          git clone https://github.com/prowler-cloud/prowler.git
-          cd prowler
+          git clone https://github.com/prowler-cloud/prowler.git prowler-cli
+          ls -la prowler-cli # Debugging: list contents of prowler-cli
+          ls -la prowler-cli/prowler # Debugging: list contents of prowler-cli/prowler
           sudo apt-get update
           sudo apt-get install -y unzip curl jq
 
@@ -33,7 +34,7 @@ jobs:
           unzip awscliv2.zip
           sudo ./aws/install --update
 
-          chmod +x prowler
+          chmod +x prowler-cli/prowler # Ensure the prowler script is executable
           aws --version
 
       - name: Run Security Audit
