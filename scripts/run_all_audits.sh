@@ -145,7 +145,7 @@ echo "[default]" > $HOME/.aws/credentials
 echo "aws_access_key_id = ${AWS_ACCESS_KEY_ID}" >> $HOME/.aws/credentials
 echo "aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}" >> $HOME/.aws/credentials
 
-./prowler/prowler -M html,csv,json -S -n --output-path reports/prowler/prowler-report-${DATE}
+./prowler-cli/prowler -M html,csv,json -S -n --output-path reports/prowler/prowler-report-${DATE}
 
 echo "All audits completed."
 
