@@ -84,15 +84,18 @@ fi
 # Run kube-bench
 echo "[*] Running kube-bench..."
 kubectl apply -f https://raw.githubusercontent.com/aquasecurity/kube-bench/main/job.yaml
-sleep 10 # Give some time for the job to complete
-JOB_NAME=$(kubectl get jobs -l app=kube-bench -o jsonpath='{.items[0].metadata.name}')
-kubectl logs -l job-name=${JOB_NAME} > reports/kube-bench/kube-bench-report-${DATE}.txt
-if [ $? -eq 0 ]; then
-    echo "[✓] kube-bench completed. Report saved to reports/kube-bench/kube-bench-report-${DATE}.txt"
-else
-    echo "[!] kube-bench failed."
-fi
+
+echo "[*] Waiting for kube-bench pod to be ready..."
+kubectl wait --for=condition=ready pod -l job-name=kube-bench --timeout=90s || {
+  echo "[!] kube-bench pod not ready in time."
+  kubectl describe pods -l job-name=kube-bench
+  exit 1
+}
+
+kubectl logs -l job-name=kube-bench > reports/kube-bench/kube-bench-report-${DATE}.txt || echo "[!] Failed to get kube-bench logs"
+
 kubectl delete -f https://raw.githubusercontent.com/aquasecurity/kube-bench/main/job.yaml
+echo "[✓] kube-bench completed"
 
 # Prepare Trivy...
 echo "[*] Preparing Trivy..."
