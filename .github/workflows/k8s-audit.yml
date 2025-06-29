@@ -7,23 +7,25 @@ on:
 jobs:
   audit:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Install tools (minikube, kubectl, trivy, etc.)
+      - name: Install tools (minikube, kubectl, trivy...)
         run: |
           curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
           sudo install minikube-linux-amd64 /usr/local/bin/minikube
-
           sudo apt-get update
-          sudo apt-get install -y unzip curl jq python3-pip kubectl
+          sudo apt-get install -y kubectl unzip curl jq python3-pip
 
+          # Trivy
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
 
+          # Kubescape
           curl -s https://raw.githubusercontent.com/armosec/kubescape/master/install.sh | /bin/bash
           sudo mv ~/.kubescape/bin/kubescape /usr/local/bin/
+
+      - name: Start Minikube
+        run: minikube start --driver=docker
 
       - name: Install AWS CLI v2
         run: |
@@ -35,38 +37,36 @@ jobs:
       - name: Install Prowler CLI
         run: |
           git clone https://github.com/prowler-cloud/prowler.git
-          ls -la prowler
-
-      - name: Start Minikube
-        run: minikube start --driver=docker
 
       - name: Run Security Audit
         run: bash scripts/run_all_audits.sh
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        continue-on-error: false
 
-      - name: List report files
-        run: |
-          echo "::group::Listing contents of ./reports"
-          find reports -type f
-          echo "::endgroup::"
-        continue-on-error: true
-
-      - name: Upload audit reports
+      - name: Upload full audit reports
         uses: actions/upload-artifact@v4
         with:
           name: audit-reports
           path: reports/**/*
+        continue-on-error: true
 
       - name: Upload Security Summary
         uses: actions/upload-artifact@v4
         with:
           name: security-summary
-          path: SECURITY-REPORT.md
+          path: reports/SECURITY-REPORT.md
 
-      - name: Upload Prowler reports
+      - name: Upload Prowler Compliance Report
         uses: actions/upload-artifact@v4
         with:
           name: prowler-compliance-reports
-          path: reports/prowler/
+          path: reports/prowler/compliance/
+
+      - name: List Report Files
+        run: |
+          echo "::group::Listing contents of ./reports"
+          find reports -type f
+          echo "::endgroup::"
+        continue-on-error: true
