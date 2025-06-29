@@ -149,11 +149,7 @@ cd prowler
 pip install . --quiet
 cd ..
 mkdir -p reports/prowler
-prowler aws \
-  --no-banner \
-  --output-formats html --output-formats csv --output-formats json-asff \
-  --output-directory reports/prowler \
-  --output-filename prowler-report-${DATE}
+prowler aws --no-banner --output-formats html --output-formats csv --output-formats json-asff --output-directory reports/prowler --output-filename prowler-report-${DATE}
 if [ $? -eq 0 ]; then
     echo "[✓] Prowler completed. Reports saved to reports/prowler/"
 else
