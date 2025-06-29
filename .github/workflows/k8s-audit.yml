@@ -7,20 +7,23 @@ on:
 jobs:
   audit:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
-      - name: Install tools (minikube, kubectl, trivy...)
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install tools (minikube, kubectl, trivy, etc.)
         run: |
           curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
           sudo install minikube-linux-amd64 /usr/local/bin/minikube
+
           sudo apt-get update
-          sudo apt-get install -y kubectl
+          sudo apt-get install -y unzip curl jq python3-pip kubectl
+
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+
           curl -s https://raw.githubusercontent.com/armosec/kubescape/master/install.sh | /bin/bash
           sudo mv ~/.kubescape/bin/kubescape /usr/local/bin/
-
-      - name: Start Minikube
-        run: minikube start --driver=docker
 
       - name: Install AWS CLI v2
         run: |
@@ -32,18 +35,16 @@ jobs:
       - name: Install Prowler CLI
         run: |
           git clone https://github.com/prowler-cloud/prowler.git
-          ls -la prowler # Debugging: list contents of prowler
-          
-          sudo apt-get update
-          sudo apt-get install -y unzip curl jq python3-pip
+          ls -la prowler
+
+      - name: Start Minikube
+        run: minikube start --driver=docker
 
       - name: Run Security Audit
         run: bash scripts/run_all_audits.sh
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
-      
 
       - name: List report files
         run: |
@@ -57,12 +58,11 @@ jobs:
         with:
           name: audit-reports
           path: reports/**/*
-        continue-on-error: true
 
-      - name: Upload Security Summary Report
+      - name: Upload Security Summary
         uses: actions/upload-artifact@v4
         with:
-          name: security-summary-report
+          name: security-summary
           path: SECURITY-REPORT.md
 
       - name: Upload Prowler reports
