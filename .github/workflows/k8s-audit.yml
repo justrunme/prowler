@@ -64,3 +64,9 @@ jobs:
         with:
           name: security-summary-report
           path: SECURITY-REPORT.md
+
+      - name: Upload Prowler reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: prowler-compliance-reports
+          path: reports/prowler/
