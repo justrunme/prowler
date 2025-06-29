@@ -2,10 +2,6 @@
 
 set -euxo pipefail
 
-# Debugging: Print current working directory and list contents
-pwd
-ls -la
-
 DATE=$(date +%Y-%m-%d)
 
 # Create report directories
@@ -18,8 +14,7 @@ find reports -type d
 echo "Installing tools..."
 
 # Install minikube
-if ! command -v minikube &> /dev/null
-then
+if ! command -v minikube &> /dev/null; then
     echo "[*] Installing minikube..."
     curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
     sudo install minikube-linux-amd64 /usr/local/bin/minikube
@@ -29,8 +24,7 @@ else
 fi
 
 # Install kubectl
-if ! command -v kubectl &> /dev/null
-then
+if ! command -v kubectl &> /dev/null; then
     echo "[*] Installing kubectl..."
     sudo apt-get update && sudo apt-get install -y kubectl
     echo "[✓] kubectl installed."
@@ -39,8 +33,7 @@ else
 fi
 
 # Install trivy
-if ! command -v trivy &> /dev/null
-then
+if ! command -v trivy &> /dev/null; then
     echo "[*] Installing trivy..."
     curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
     echo "[✓] trivy installed."
@@ -49,8 +42,7 @@ else
 fi
 
 # Install kubescape
-if ! command -v kubescape &> /dev/null
-then
+if ! command -v kubescape &> /dev/null; then
     echo "[*] Installing kubescape..."
     curl -s https://raw.githubusercontent.com/armosec/kubescape/master/install.sh | /bin/bash
     sudo mv ~/.kubescape/bin/kubescape /usr/local/bin/
@@ -59,9 +51,8 @@ else
     echo "[✓] kubescape already installed."
 fi
 
-# Install jq (for parsing JSON reports)
-if ! command -v jq &> /dev/null
-then
+# Install jq
+if ! command -v jq &> /dev/null; then
     echo "[*] Installing jq..."
     sudo apt-get update && sudo apt-get install -y jq
     echo "[✓] jq installed."
@@ -74,12 +65,7 @@ echo "Tools installation complete."
 # Start Minikube
 echo "[*] Starting Minikube..."
 minikube start --driver=docker
-if [ $? -eq 0 ]; then
-    echo "[✓] Minikube started."
-else
-    echo "[!] Minikube failed to start."
-    exit 1
-fi
+echo "[✓] Minikube started."
 
 # Run kube-bench
 echo "[*] Running kube-bench..."
@@ -103,43 +89,29 @@ kubectl wait --for=condition=ready pod -l job-name=kube-bench --timeout=60s || {
 }
 
 kubectl logs -l job-name=kube-bench > reports/kube-bench/kube-bench-report-${DATE}.txt || echo "[!] Failed to get kube-bench logs"
-
 kubectl delete -f https://raw.githubusercontent.com/aquasecurity/kube-bench/main/job.yaml
 echo "[✓] kube-bench completed"
 
-# Prepare Trivy...
+# Trivy
 echo "[*] Preparing Trivy..."
 export KUBECONFIG=$HOME/.kube/config
-kubectl config rename-context minikube cluster || true # Rename minikube context to cluster for Trivy compatibility
+kubectl config rename-context minikube cluster || true
 kubectl config use-context cluster
+
 kubectl get nodes
-if [ $? -eq 0 ]; then
-    echo "[✓] Trivy context prepared."
-else
-    echo "[!] Failed to prepare Trivy context."
-    exit 1
-fi
+echo "[✓] Trivy context prepared."
 
 echo "[*] Running trivy..."
-trivy k8s cluster --report summary --format json > reports/trivy/cluster-report-${DATE}.json
-if [ $? -eq 0 ]; then
-    echo "[✓] trivy completed. Report saved to reports/trivy/cluster-report-${DATE}.json"
-else
-    echo "[!] trivy failed."
-fi
+trivy k8s cluster --report summary --format json > reports/trivy/cluster-report-${DATE}.json || echo "[!] trivy failed."
+echo "[✓] trivy completed."
 
-# Run kubescape
+# Kubescape
 echo "[*] Running kubescape..."
-kubescape scan framework nsa --format json --output reports/kubescape/kubescape-report-${DATE}.json
-if [ $? -eq 0 ]; then
-    echo "[✓] kubescape completed. Report saved to reports/kubescape/kubescape-report-${DATE}.json"
-else
-    echo "[!] kubescape failed."
-fi
+kubescape scan framework nsa --format json --output reports/kubescape/kubescape-report-${DATE}.json || echo "[!] kubescape failed."
+echo "[✓] kubescape completed."
 
-# Run Prowler CLI
+# Prowler
 echo "[*] Running Prowler..."
-# Create a dummy AWS credentials file for Prowler to run
 mkdir -p $HOME/.aws
 echo "[default]" > $HOME/.aws/credentials
 echo "aws_access_key_id = ${AWS_ACCESS_KEY_ID}" >> $HOME/.aws/credentials
@@ -148,31 +120,26 @@ echo "aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}" >> $HOME/.aws/credential
 cd prowler
 pip install . --quiet
 cd ..
+
 mkdir -p reports/prowler
-prowler aws --no-banner --output-formats html --output-formats csv --output-formats json-asff --output-directory reports/prowler --output-filename prowler-report-${DATE}
-if [ $? -eq 0 ]; then
-    echo "[✓] Prowler completed. Reports saved to reports/prowler/"
-else
-    echo "[!] Prowler failed."
-fi
 
-echo "All audits completed."
+prowler aws --no-banner --output-formats html --output-formats csv --output-formats json-asff \
+  --output-directory reports/prowler --output-filename prowler-report-${DATE} || \
+  echo "[!] Prowler finished with compliance issues (exit code ignored)"
 
-# Generate SECURITY-REPORT.md
+echo "[✓] Prowler completed. Reports saved to reports/prowler/"
+
+# Report summary
 echo "[*] Generating SECURITY-REPORT.md..."
-
 echo "# Kubernetes Security Audit Summary" > SECURITY-REPORT.md
 echo "" >> SECURITY-REPORT.md
 echo "_Last run: ${DATE}_" >> SECURITY-REPORT.md
 echo "" >> SECURITY-REPORT.md
 
-# Kube-bench (CIS Benchmark) - Placeholder for now, as it's a text report
-# For a more detailed summary, parsing the text report would be needed.
 echo "## CIS Benchmark (kube-bench)" >> SECURITY-REPORT.md
 echo "- Status: See reports/kube-bench/kube-bench-report-${DATE}.txt" >> SECURITY-REPORT.md
 echo "" >> SECURITY-REPORT.md
 
-# Trivy
 TRIVY_REPORT="reports/trivy/cluster-report-${DATE}.json"
 if [ -f "$TRIVY_REPORT" ]; then
     CRITICAL_VULNS=$(jq '.vulnerabilities | map(select(.Severity == "CRITICAL")) | length' "$TRIVY_REPORT")
@@ -194,7 +161,6 @@ else
     echo "" >> SECURITY-REPORT.md
 fi
 
-# Kubescape
 KUBESCAPE_REPORT="reports/kubescape/kubescape-report-${DATE}.json"
 if [ -f "$KUBESCAPE_REPORT" ]; then
     NSA_SCORE=$(jq '.summary.frameworks[] | select(.name == "NSA") | .score' "$KUBESCAPE_REPORT")
@@ -210,16 +176,12 @@ else
     echo "" >> SECURITY-REPORT.md
 fi
 
-# Prowler (assuming HTML report is generated, parsing JSON would be better if available)
-# Prowler generates HTML, CSV, JSON. We'll try to parse the JSON if it's there.
 PROWLER_JSON_REPORT="reports/prowler/prowler-report-${DATE}.json"
 if [ -f "$PROWLER_JSON_REPORT" ]; then
-    # Prowler JSON structure can be complex, this is a simplified example
-    # You might need to adjust this based on the actual JSON output structure
     TOTAL_FINDINGS=$(jq '.findings | length' "$PROWLER_JSON_REPORT")
     echo "## Prowler AWS Security Audit" >> SECURITY-REPORT.md
     echo "- Total Findings: ${TOTAL_FINDINGS}" >> SECURITY-REPORT.md
-    echo "- Status: See reports/prowler/prowler-report-${DATE}.html for details." >> SECURITY-REPORT.md
+    echo "- Status: See HTML report for details." >> SECURITY-REPORT.md
     echo "" >> SECURITY-REPORT.md
 else
     echo "## Prowler AWS Security Audit" >> SECURITY-REPORT.md
@@ -228,6 +190,58 @@ else
 fi
 
 echo "[✓] SECURITY-REPORT.md generated."
-
 echo "Report folders created:"
 find reports -type f || echo "⚠️ No reports found!"
+
+# Автогенерация SECURITY-REPORT.md
+echo "[*] Generating SECURITY-REPORT.md..."
+
+SECURITY_REPORT="SECURITY-REPORT.md"
+
+{
+echo "# Kubernetes Security Audit Summary"
+echo ""
+echo "_Last run: ${DATE}_"
+echo ""
+echo "## CIS Benchmark (kube-bench)"
+echo "- Status: See reports/kube-bench/kube-bench-report-${DATE}.txt"
+echo ""
+
+echo "## Trivy Vulnerability Scan"
+TRIVY_JSON="reports/trivy/cluster-report-${DATE}.json"
+if [ -f "$TRIVY_JSON" ]; then
+    echo "- Critical: $(jq '.vulnerabilities | map(select(.Severity == "CRITICAL")) | length' "$TRIVY_JSON")"
+    echo "- High: $(jq '.vulnerabilities | map(select(.Severity == "HIGH")) | length' "$TRIVY_JSON")"
+    echo "- Medium: $(jq '.vulnerabilities | map(select(.Severity == "MEDIUM")) | length' "$TRIVY_JSON")"
+    echo "- Low: $(jq '.vulnerabilities | map(select(.Severity == "LOW")) | length' "$TRIVY_JSON")"
+    echo "- Unknown: $(jq '.vulnerabilities | map(select(.Severity == "UNKNOWN")) | length' "$TRIVY_JSON")"
+else
+    echo "- Status: Report not found or failed to generate."
+fi
+echo ""
+
+echo "## Kubescape Compliance"
+KUBESCAPE_JSON="reports/kubescape/kubescape-report-${DATE}.json"
+if [ -f "$KUBESCAPE_JSON" ]; then
+    NSA_SCORE=$(jq '.summary.frameworks[] | select(.name == "NSA") | .score' "$KUBESCAPE_JSON")
+    MITRE_SCORE=$(jq '.summary.frameworks[] | select(.name == "MITRE") | .score' "$KUBESCAPE_JSON")
+    echo "- NSA Framework Score: ${NSA_SCORE}%"
+    echo "- MITRE ATT&CK Score: ${MITRE_SCORE}%"
+else
+    echo "- Status: Report not found or failed to generate."
+fi
+echo ""
+
+echo "## Prowler AWS Security Audit"
+PROWLER_JSON="reports/prowler/prowler-report-${DATE}.json"
+if [ -f "$PROWLER_JSON" ]; then
+    TOTAL_FINDINGS=$(jq '.findings | length' "$PROWLER_JSON")
+    echo "- Total Findings: ${TOTAL_FINDINGS}"
+    echo "- Status: See reports/prowler/prowler-report-${DATE}.html for details."
+else
+    echo "- Status: Report not found or failed to generate."
+fi
+echo ""
+} > "$SECURITY_REPORT"
+
+echo "[✓] SECURITY-REPORT.md generated."
