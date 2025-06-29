@@ -1,5 +1,7 @@
 # Kubernetes Security Audit with Open-Source Tools
 
+![Security Audit](https://github.com/justrunme/prowler/actions/workflows/k8s-audit.yml/badge.svg)
+
 This project demonstrates an automated security audit of a Kubernetes cluster (Minikube) using a combination of open-source security tools: `kube-bench`, `trivy`, `kubescape`, and `prowler`.
 
 ## Project Goal
@@ -8,7 +10,6 @@ The primary goal is to simulate cloud security scanning locally within a Kuberne
 
 ## Project Structure
 
-```
 prowler-k8s-security/
 ├── README.md
 ├── .github/workflows/k8s-audit.yml
@@ -22,62 +23,71 @@ prowler-k8s-security/
 │   └── trivy/
 │   └── kubescape/
 └── SECURITY-REPORT.md            # Automated security summary
-```
 
 ## Tools Used
 
-*   **Minikube**: A tool that runs a single-node Kubernetes cluster locally.
-*   **kube-bench**: Checks whether Kubernetes is deployed securely by running the checks documented in the CIS Kubernetes Benchmark.
-*   **Trivy**: A comprehensive security scanner for vulnerabilities in container images, filesystems, and Git repositories. Used here for Kubernetes cluster scanning.
-*   **Kubescape**: An open-source tool for testing Kubernetes clusters against various security frameworks (e.g., NSA, MITRE ATT&CK).
-*   **Prowler**: An open-source tool for security auditing, hardening, and incident response in cloud environments (AWS, Azure, GCP). Used here to simulate AWS security checks within the CI/CD pipeline.
+* **Minikube**: A tool that runs a single-node Kubernetes cluster locally.
+* **kube-bench**: Checks whether Kubernetes is deployed securely by running the checks documented in the CIS Kubernetes Benchmark.
+* **Trivy**: A comprehensive security scanner for vulnerabilities in container images, filesystems, and Git repositories. Used here for Kubernetes cluster scanning.
+* **Kubescape**: An open-source tool for testing Kubernetes clusters against various security frameworks (e.g., NSA, MITRE ATT&CK).
+* **Prowler**: An open-source tool for security auditing, hardening, and incident response in cloud environments (AWS, Azure, GCP). Used here to simulate AWS security checks within the CI/CD pipeline.
 
 ## Getting Started
 
 ### Prerequisites
 
-*   Docker (for Minikube driver)
-*   `git`
+* Docker (for Minikube driver)
+* `git`
 
 ### Local Execution
 
-1.  **Clone the repository:**
+1. **Clone the repository:**
     ```bash
-    git clone https://github.com/justrunme/prowler.git
-    cd prowler
+    git clone https://github.com/justrunme/prowler-k8s-security.git
+    cd prowler-k8s-security
     ```
-2.  **Run the audit script:**
+
+2. **Run the audit script:**
     ```bash
     bash scripts/run_all_audits.sh
     ```
 
     This script will:
-    *   Install necessary tools (`minikube`, `kubectl`, `trivy`, `kubescape`, `awscli`).
-    *   Start a Minikube cluster.
-    *   Execute `kube-bench`, `trivy`, `kubescape`, and `prowler`.
-    *   Generate reports in the `reports/` directory.
+    * Install necessary tools (`minikube`, `kubectl`, `trivy`, `kubescape`, `awscli`).
+    * Start a Minikube cluster.
+    * Execute `kube-bench`, `trivy`, `kubescape`, and `prowler`.
+    * Generate reports in the `reports/` directory.
 
 ### CI/CD with GitHub Actions
 
 The `k8s-audit.yml` workflow automates the audit process on every `push` to the `main` branch and can also be triggered manually via `workflow_dispatch`.
 
 To run the GitHub Actions workflow:
-1.  Push your code to your GitHub repository.
-2.  Navigate to the "Actions" tab in your repository.
-3.  Select the "K8s Audit on Minikube" workflow and observe its execution.
+1. Push your code to your GitHub repository.
+2. Navigate to the "Actions" tab in your repository.
+3. Select the "K8s Audit on Minikube" workflow and observe its execution.
 
 ## Reports
 
-Audit reports will be generated in the `reports/` directory, with filenames including the current date for better organization:
+Audit reports are generated in the `reports/` directory with date-based filenames:
 
-*   `reports/prowler/prowler-report-YYYY-MM-DD.html`
-*   `reports/kube-bench/kube-bench-report-YYYY-MM-DD.txt`
-*   `reports/trivy/cluster-report-YYYY-MM-DD.json`
-*   `reports/kubescape/kubescape-report-YYYY-MM-DD.json`
+* `reports/prowler/prowler-report-YYYY-MM-DD.html`
+* `reports/kube-bench/kube-bench-report-YYYY-MM-DD.txt`
+* `reports/trivy/cluster-report-YYYY-MM-DD.json`
+* `reports/kubescape/kubescape-report-YYYY-MM-DD.json`
 
-Additionally, a summarized security report will be available at `SECURITY-REPORT.md` in the project root.
+### 📋 Security Summary
 
-To view the full reports from GitHub Actions, download the `audit-reports` artifact from the completed workflow run.
+Below is the latest automatically generated summary from `SECURITY-REPORT.md`:
+
+<!-- security-report:start -->
+<!-- security-report:end -->
+
+To view full reports from GitHub Actions, download the following artifacts:
+
+- **[audit-reports](https://github.com/justrunme/prowler/actions)** – includes all raw scan data
+- **security-summary** – contains `SECURITY-REPORT.md` file
+- **prowler-compliance-reports** – individual CSVs per AWS framework
 
 ## Security Considerations
 
@@ -85,8 +95,8 @@ To view the full reports from GitHub Actions, download the `audit-reports` artif
 
 ## Future Enhancements
 
-*   **Automated PASS/FAIL checks:** Implement logic to parse report results and fail the CI pipeline based on defined thresholds (e.g., critical vulnerabilities, low compliance scores).
-*   **HTML Dashboard:** Generate a simple HTML dashboard with links to all reports, potentially hosted via GitHub Pages.
-*   **Notification Integration:** Send alerts to Slack/Telegram for critical findings.
-*   **Custom Checks:** Develop custom checks for Prowler or other tools.
-*   **Multi-Cloud Support:** Extend auditing to Azure or GCP.
+* **Automated PASS/FAIL checks**: Fail the pipeline on critical findings or low compliance.
+* **HTML Dashboard**: Generate a browsable report via GitHub Pages.
+* **Notifications**: Send Slack or Telegram alerts on audit completion.
+* **Custom Checks**: Add organization-specific checks.
+* **Multi-Cloud**: Extend to Azure or GCP.
